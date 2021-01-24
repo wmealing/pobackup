@@ -1,6 +1,9 @@
 local urutora = require('urutora')
 local inspect = require('inspect')
+
+
 local u
+local wave
 
 local bgColor = urutora.utils.toRGB('#343a40')
 local canvas
@@ -25,6 +28,7 @@ local bitDepths = {16, 8}
 function love.load()
 
    width, height, flags = love.window.getMode( )
+   inspect = require "wave"
 
    u = urutora:new()
 
@@ -114,48 +118,54 @@ function love.load()
         RecordingImage = u.image({ image = love.graphics.newImage('img/microphone-icon.png'),
                                    keep_aspect_ratio = true })
 
-        RecordingButton = u.button({ text = 'Record' })
+        RecordingButton = u.button({ text = "Record" })
         RecordingButton:setStyle({padding = 15})
+
+        ButtonState = {
+           Recording = 1,
+           Stopped = 2,
+           Processing = 3
+        }
 
         RecordingButton:action(function(e)
 
-              print("Beginning recording..")
+              recordingButtonState = ""
 
               if isRecording == -1 then
 
-                  local success = false
 
-                  for _, sampleFmt in ipairs(sampleFmts) do
-                     for _, bitDepth in ipairs(bitDepths) do
-                        for _, stereo in ipairs(chanStereo) do
-                           success = recDev:start(16384, sampleFmt, bitDepth, stereo)
+                 local success = false
 
-                           if success then
-                              recordingFreq = sampleFmt
-                              recordingBitDepth = bitDepth
-                              recordingChan = stereo
-                              isRecording = 5
-                              print("Recording", sampleFmt, bitDepth, stereo)
-                              return
-                           end
+                 for _, sampleFmt in ipairs(sampleFmts) do
+                    for _, bitDepth in ipairs(bitDepths) do
+                       for _, stereo in ipairs(chanStereo) do
+                          success = recDev:start(16384, sampleFmt, bitDepth, stereo)
 
-                           print("Record parameter failed", sampleFmt, bitDepth, stereo)
-                        end
-                     end
-                  end
+                          if success then
+                             recordingFreq = sampleFmt
+                             recordingBitDepth = bitDepth
+                             recordingChan = stereo
+                             isRecording = 5
+                             print("Recording", sampleFmt, bitDepth, stereo)
+                             return
+                          end
 
-                  assert(success, "cannot start capture")
+                          print("Record parameter failed", sampleFmt, bitDepth, stereo)
+                       end
+                    end
+                 end
 
-               elseif isRecording == -math.huge and audioSource then
-                  if audioSource:isPlaying() then
-                     audioSource:pause()
-                  else
-                     audioSource:play()
-                  end
-               end
-              end)
+                 assert(success, "cannot start capture")
 
+              elseif isRecording == -math.huge and audioSource then
 
+                 if audioSource:isPlaying() then
+                    audioSource:pause()
+                 else
+                    audioSource:play()
+                 end
+              end
+        end)
 
         RecordTabContents
            :colspanAt(1, 1, 2)
@@ -217,13 +227,13 @@ end
 function love.update(dt)
    u:update(dt)
 
+
    if isRecording > 0 then
       isRecording = isRecording - dt
 
+      -- is this soudndata ?
       local data = recDev:getData()
 
-      print (inspect (data) )
-      
       if data then
          soundDataLen = soundDataLen + data:getSampleCount()
          soundDataTable[#soundDataTable + 1] = data
@@ -233,9 +243,11 @@ function love.update(dt)
          -- Stop recording
          isRecording = -math.huge
          recDev:stop()
+         RecordingButton.text = "Record again"
+      
 
-                        -- assemble soundData
-         local soundData = love.sound.newSoundData(soundDataLen, recordingFreq, recordingBitDepth, recordingChan)
+         -- assemble soundData
+local soundData = love.sound.newSoundData(soundDataLen, recordingFreq, recordingBitDepth, recordingChan)
          local soundDataIdx = 0
 
          for _, v in ipairs(soundDataTable) do
@@ -269,12 +281,6 @@ function love.draw()
 		           love.graphics.getHeight() / canvas:getHeight()
         )
 
-        local debug = 0
-
-        if debug then
-           love.graphics.print(x,100,100,0,1,1,0,0,0,0)
-        end
-
 end
 
 
@@ -307,7 +313,6 @@ function update_backup_list()
 
    end
 
-   print (inspect (filtered_list))
    backup_list = filtered_list
 
 end
