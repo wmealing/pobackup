@@ -8,8 +8,19 @@ local canvas
 local backup_dir = ""
 local backup_list = {}
 
+-- audio stuff
+local recDev = nil
+local isRecording = -1
+local soundDataTable = {}
+local soundDataLen = 0
+local audioSource = nil
+local devicesString
+local recordingFreq, recordingChan, recordingBitDepth
 
-local heightFunc = love.graphics.getHeight();
+-- Possible combination testing
+local sampleFmts = {48000, 44100, 32000, 22050, 16000, 8000}
+local chanStereo = {2, 1}
+local bitDepths = {16, 8}
 
 function love.load()
 
@@ -19,6 +30,22 @@ function love.load()
 
    make_save_dir()
    update_backup_list()
+
+   -- get a list of devices ( https://love2d.org/forums/viewtopic.php?t=88151&p=231722 )
+   local devices = love.audio.getRecordingDevices()
+   assert(#devices > 0, "no recording devices found")
+
+   --this may not be right, maybe set this as a preference
+   recDev = devices[1]
+
+   local devStr = {}
+
+   for i, v in ipairs(devices) do
+      devStr[#devStr + 1] = string.format("%d. %s", i, v:getName())
+   end
+
+   devicesString = table.concat(devStr, "\n")
+
 
    function love.mousepressed(x, y, button) u:pressed(x, y) end
    function love.mousemoved(x, y, dx, dy) u:moved(x, y, dx, dy) end
@@ -35,11 +62,11 @@ function love.load()
    end
 
 
-local w, h = love.window.getMode()
+   local w, h = love.window.getMode()
 
    -- FIXME: i dont know how to caculate this but without it
    -- the notification bar covers the buttons.
-   local top_offset = 50
+   
    local tab_button_height = h / 8.0
    local widget_padding = 5
 
@@ -79,14 +106,55 @@ local w, h = love.window.getMode()
                            h = h - tab_button_height,
                            tag = 'RecordTabContents' })
 
-        RecordingButton = u.button({ text = 'Record' })
-        RecordingButton:setStyle({padding = 15})
+
+
+        RecordingLabel =  u.label({ text = 'Press Record button' }):setStyle({ font = FontSmall })
+        RecordingLabel2 = u.label({ text = 'below to start recording' }):setStyle({ font = FontSmall  })
 
         RecordingImage = u.image({ image = love.graphics.newImage('img/microphone-icon.png'),
                                    keep_aspect_ratio = true })
 
-        RecordingLabel =  u.label({ text = 'Press Record button' }):setStyle({ font = FontSmall })
-        RecordingLabel2 = u.label({ text = 'below to start recording' }):setStyle({ font = FontSmall  })
+        RecordingButton = u.button({ text = 'Record' })
+        RecordingButton:setStyle({padding = 15})
+
+        RecordingButton:action(function(e)
+
+              print("Beginning recording..")
+
+              if isRecording == -1 then
+
+                  local success = false
+
+                  for _, sampleFmt in ipairs(sampleFmts) do
+                     for _, bitDepth in ipairs(bitDepths) do
+                        for _, stereo in ipairs(chanStereo) do
+                           success = recDev:start(16384, sampleFmt, bitDepth, stereo)
+
+                           if success then
+                              recordingFreq = sampleFmt
+                              recordingBitDepth = bitDepth
+                              recordingChan = stereo
+                              isRecording = 5
+                              print("Recording", sampleFmt, bitDepth, stereo)
+                              return
+                           end
+
+                           print("Record parameter failed", sampleFmt, bitDepth, stereo)
+                        end
+                     end
+                  end
+
+                  assert(success, "cannot start capture")
+
+               elseif isRecording == -math.huge and audioSource then
+                  if audioSource:isPlaying() then
+                     audioSource:pause()
+                  else
+                     audioSource:play()
+                  end
+               end
+              end)
+
 
 
         RecordTabContents
@@ -147,7 +215,44 @@ local w, h = love.window.getMode()
 end
 
 function love.update(dt)
-	u:update(dt)
+   u:update(dt)
+
+   if isRecording > 0 then
+      isRecording = isRecording - dt
+
+      local data = recDev:getData()
+
+      print (inspect (data) )
+      
+      if data then
+         soundDataLen = soundDataLen + data:getSampleCount()
+         soundDataTable[#soundDataTable + 1] = data
+      end
+
+      if isRecording <= 0 then
+         -- Stop recording
+         isRecording = -math.huge
+         recDev:stop()
+
+                        -- assemble soundData
+         local soundData = love.sound.newSoundData(soundDataLen, recordingFreq, recordingBitDepth, recordingChan)
+         local soundDataIdx = 0
+
+         for _, v in ipairs(soundDataTable) do
+            for i = 0, v:getSampleCount() - 1 do
+               for j = 1, recordingChan do
+                  soundData:setSample(soundDataIdx, j, v:getSample(i, j))
+               end
+               soundDataIdx = soundDataIdx + 1
+            end
+            v:release()
+         end
+
+         audioSource = love.audio.newSource(soundData)
+      end
+   end
+
+
 end
 
 function love.draw()
