@@ -51,7 +51,6 @@ function love.load()
    make_save_dir()
    backup_list = update_backup_list()
 
-
    function love.mousepressed(x, y, button) u:pressed(x, y) end
    function love.mousemoved(x, y, dx, dy) u:moved(x, y, dx, dy) end
    function love.mousereleased(x, y, button) u:released(x, y) end
@@ -177,8 +176,8 @@ function love.load()
       })
 
       SongButton:action (function (e)
-            backup_path = "backups/" .. e.wavfile
-            print ("loading from backup path" .. e.backup_path)
+            backup_path = "backups/" .. wavfile
+            print ("loading from backup path" .. backup_path)
             music = love.audio.newSource(backup_path, "stream")
             music:play()
       end)
