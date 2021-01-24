@@ -12,8 +12,10 @@ function love.conf(t)
 
   t.window.title = "urutora demo"
   t.window.icon = nil
-  -- window.window.width = 768
-  -- t.window.height = 432
+
+  -- 2280 x 1080 
+  t.window.width = 540
+  t.window.height = 1140
   t.window.borderless = false
   t.window.resizable = true
   t.window.minwidth = 1

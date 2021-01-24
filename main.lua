@@ -139,8 +139,8 @@ function love.draw()
 	u:draw()
 	love.graphics.setCanvas()
 
-	love.graphics.draw(canvas, 0, 0, 0,
-		love.graphics.getWidth() / canvas:getWidth(),
+	love.graphics.draw(canvas, 0, 50, 0,
+                           love.graphics.getWidth() / canvas:getWidth(),
 		love.graphics.getHeight() / canvas:getHeight()
 	)
 end
