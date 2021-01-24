@@ -1,7 +1,6 @@
 local urutora = require('urutora')
 local inspect = require('inspect')
 
-
 local u
 local wave
 
@@ -19,16 +18,27 @@ local soundDataLen = 0
 local audioSource = nil
 local devicesString
 local recordingFreq, recordingChan, recordingBitDepth
+local soundData
 
 -- Possible combination testing
 local sampleFmts = {48000, 44100, 32000, 22050, 16000, 8000}
 local chanStereo = {2, 1}
 local bitDepths = {16, 8}
 
+function CreateRandomString(length)
+    local uuid = ""
+    local chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+    for i = 1, length do
+        local l = math.random(1, #chars)
+        uuid = uuid .. string.sub(chars, l, l)
+    end
+    return uuid
+end
+
 function love.load()
 
    width, height, flags = love.window.getMode( )
-   inspect = require "wave"
+   wave = require "wave"
 
    u = urutora:new()
 
@@ -110,16 +120,11 @@ function love.load()
                            h = h - tab_button_height,
                            tag = 'RecordTabContents' })
 
-
-
         RecordingLabel =  u.label({ text = 'Press Record button' }):setStyle({ font = FontSmall })
         RecordingLabel2 = u.label({ text = 'below to start recording' }):setStyle({ font = FontSmall  })
 
         RecordingImage = u.image({ image = love.graphics.newImage('img/microphone-icon.png'),
                                    keep_aspect_ratio = true })
-
-        RecordingButton = u.button({ text = "Record" })
-        RecordingButton:setStyle({padding = 15})
 
         ButtonState = {
            Recording = 1,
@@ -127,12 +132,24 @@ function love.load()
            Processing = 3
         }
 
+        RecordingButton = u.button({ text = "Record" , state = ButtonState.Stopped  })
+        RecordingButton:setStyle({padding = 15})
+
         RecordingButton:action(function(e)
 
-              recordingButtonState = ""
+              -- dumb way of managing button state, this is still broken
+              if (RecordingButton.state == ButtonState.Stopped) then
+                 RecordingButton.text = "Stop"
+                 RecordingButton.state = ButtonState.Recording
+                 
+                 elseif (RecordingButton.state == ButtonState.Recording) then
+                 recDev:stop()
+                 RecordingButton.text = "Recording"
+                 RecordingButton.state = ButtonState.Recording
+              end
+
 
               if isRecording == -1 then
-
 
                  local success = false
 
@@ -162,10 +179,15 @@ function love.load()
                  if audioSource:isPlaying() then
                     audioSource:pause()
                  else
-                    audioSource:play()
-                 end
+                    print ("Saving file")
+                    print ( love.filesystem.getSaveDirectory())
+                    wave.save{ filename = "backups/" .. CreateRandomString(8) .. ".wav",
+                                          sound = soundData,
+                                          overwrite = true,
+                                          callback = function() love.graphics.setColor(255, 0, 0) end}
+                    end
               end
-        end)
+        end) 
 
         RecordTabContents
            :colspanAt(1, 1, 2)
@@ -192,9 +214,19 @@ function love.load()
 
         BackupListTabContents.outline = true
 
-        for k,v in ipairs(backup_list) do
-           SongButton = u.button({ text = "Track " .. v ,
-                                   h = 20}) -- :setStyle({ font = FontSmall })
+        for k,wavfile in ipairs(backup_list) do
+           local SongButton = u.button({ text = "Track " .. wavfile ,
+                                         h = 20,
+                                         song = wavfile
+           }) 
+
+           SongButton:action (function (e)
+                                       backup_path = "backups/" .. e.wavfile
+                                       print ("loading from backup path" .. e.backup_path)
+                                       music = love.audio.newSource(backup_path, "stream")
+                                       music:play()
+           end)
+
            BackupListTabContents:addAt(k,1,SongButton)
         end
 
@@ -226,12 +258,12 @@ end
 
 function love.update(dt)
    u:update(dt)
-
+   wave.update (dt)
 
    if isRecording > 0 then
       isRecording = isRecording - dt
 
-      -- is this soudndata ?
+      -- I think that this is soundata ?
       local data = recDev:getData()
 
       if data then
@@ -242,12 +274,10 @@ function love.update(dt)
       if isRecording <= 0 then
          -- Stop recording
          isRecording = -math.huge
-         recDev:stop()
-         RecordingButton.text = "Record again"
-      
+
 
          -- assemble soundData
-local soundData = love.sound.newSoundData(soundDataLen, recordingFreq, recordingBitDepth, recordingChan)
+         soundData = love.sound.newSoundData(soundDataLen, recordingFreq, recordingBitDepth, recordingChan)
          local soundDataIdx = 0
 
          for _, v in ipairs(soundDataTable) do
