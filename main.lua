@@ -1,14 +1,8 @@
-
-
-
-
 local urutora = require('urutora')
 local u
 
-
 local bgColor = urutora.utils.toRGB('#343a40')
 local canvas
-local panelA, panelB, panelC, panelD
 
 function love.load()
 
@@ -21,10 +15,10 @@ function love.load()
    function love.mousereleased(x, y, button) u:released(x, y) end
    function love.textinput(text) u:textinput(text) end
    function love.wheelmoved(x, y) u:wheelmoved(x, y) end
-   
+
    function love.keypressed(k, scancode, isrepeat)
       u:keypressed(k, scancode, isrepeat)
-      
+
       if k == 'escape' then
          love.event.quit()
       end
