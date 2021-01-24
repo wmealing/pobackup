@@ -94,6 +94,7 @@ function love.load()
 
         BackupListTabContents.outline = true
 
+
         BackupListTabContents
            :rowspanAt(1,1,2)
 
@@ -142,7 +143,9 @@ function make_save_dir()
    love.filesystem.setIdentity("po-backup")
    -- on android this will be the path on 
    dir = love.filesystem.getSaveDirectory( )
+   print(dir)
    -- this needs to be tested
-   success = love.filesystem.createDirectory( "./backups/" )
+   success = love.filesystem.createDirectory( "backups" )
+
 
 end
