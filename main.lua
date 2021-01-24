@@ -156,7 +156,7 @@ function love.load()
 
    RecordTabContents.outline = true
 
-   BackupListTabContents = u.panel( { rows = 4,
+   BackupListTabContents = u.panel( { rows = 12,
                                       cols = 1,
                                       csy = 150,
                                       x = widget_padding,
@@ -205,7 +205,7 @@ function love.load()
               print("Listing Backups")
               RecordTabButton.text = "Recording"
               BackupListTabButton.text = "[ Backups ]"
-              update_backup_list()
+              backup_list = update_backup_list()
               u:deactivateByTag('RecordTabContents')
               u:activateByTag('BackupListTabContents')
         end)
@@ -235,13 +235,12 @@ function love.draw()
 	u:draw()
 	love.graphics.setCanvas()
 
-        --
         x, y, w, h = love.window.getSafeArea()
 
         love.graphics.draw(canvas, x, y, 0,
                            love.graphics.getWidth() / canvas:getWidth(),
 		           love.graphics.getHeight() / canvas:getHeight()
-        )
+                           )
 
 end
 
