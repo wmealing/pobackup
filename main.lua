@@ -8,7 +8,15 @@ local canvas
 local backup_dir = ""
 local backup_list = {}
 
+
+local heightFunc = love.graphics.getHeight();
+
 function love.load()
+
+   width, height, flags = love.window.getMode( )
+
+   print ("Width: " .. width)
+   print ("Height: " .. height)
 
    u = urutora:new()
 
@@ -29,41 +37,48 @@ function love.load()
       end
    end
 
-	local w, h = love.window.getMode()
 
-	canvas = love.graphics.newCanvas(w, h)
-	canvas:setFilter('nearest', 'nearest')
+local w, h = love.window.getMode()
 
-        -- this makes startup quite a bit slower !
-	local DefaultFont = love.graphics.newFont('fonts/block.ttf',24)
-	u.setDefaultFont(DefaultFont)
+   -- FIXME: i dont know how to caculate this but without it
+   -- the notification bar covers the buttons.
+local top_offset = 50
+local tab_button_height = h / 8.0
 
-	u.setResolution(canvas:getWidth(), canvas:getHeight())
+canvas = love.graphics.newCanvas(w, h)
+   canvas:setFilter('nearest', 'nearest')
 
-        widget_padding = 5
+   local DefaultFont = love.graphics.newFont('fonts/block.ttf',20)
+   local FontSmall = love.graphics.newFont('fonts/block.ttf',12)
 
-        local RecordTabButton = urutora.button({
-              text = '[ Recording ]',
-              x = widget_padding,
-              y = 2,
-              w = (love.graphics.getWidth() / 2.0 ) - widget_padding,
-              h = 40;
-              tag = 'RecordTabButton'
+   u.setDefaultFont(DefaultFont)
+
+   u.setResolution(canvas:getWidth(), canvas:getHeight())
+
+   widget_padding = 5
+
+   local RecordTabButton = urutora.button({
+         text = '[ Recording ]',
+         x = widget_padding,
+         y = 2,
+         w = (width / 2.0 ) - widget_padding,
+         h = tab_button_height,
+         tag = 'RecordTabButton'
         })
 
         local BackupListTabButton = urutora.button({
               text = 'Backups',
-              x = (love.graphics.getWidth() / 2.0 ) + widget_padding,
+              x = (width / 2.0 ) + widget_padding,
               y = 2,
-              w = (love.graphics.getWidth() / 2.0 ) - widget_padding,
-              h = 40;
+              w = (width / 2.0 ) - widget_padding,
+              h = tab_button_height,
               tag = 'BackupListTabButton'
         })
 
         RecordTabContents= u.panel({ rows = 6,
                            cols = 2,
                            x = widget_padding,
-                           y = 50, -- FIXME: , calculate off the tab button height
+                           y = tab_button_height + widget_padding,
                            w = w - (widget_padding * 2),
                            h = h - 55,
                            tag = 'RecordTabContents' })
@@ -74,10 +89,11 @@ function love.load()
         RecordingImage = u.image({ image = love.graphics.newImage('img/microphone-icon.png'),
                                    keep_aspect_ratio = true })
 
-        RecordingLabel = u.label({ text = 'Press Record button' })
-        RecordingLabel2 = u.label({ text = 'below to start recording' })
+        RecordingLabel =  u.label({ text = 'Press Record button' }):setStyle({ font = FontSmall })
+        RecordingLabel2 = u.label({ text = 'below to start recording' }):setStyle({ font = FontSmall  })
 
-	RecordTabContents
+
+        RecordTabContents
            :colspanAt(1, 1, 2)
            :colspanAt(2, 1, 2)
            :colspanAt(3, 1, 2)
@@ -92,16 +108,21 @@ function love.load()
         BackupListTabContents = u.panel( { rows = 6,
                                            cols = 4,
                                            x = widget_padding,
-                                           y = 50,
+                                           y = tab_button_height + widget_padding,
                                            w = w - (widget_padding * 2),
                                            h = h - 55,
-                                           tag = 'BackupListTabContents'
-        })
+                                           tag = 'BackupListTabContents'})
 
         BackupListTabContents.outline = true
 
         BackupListTabContents
            :rowspanAt(1,1,2)
+
+        for k,v in ipairs(backup_list) do
+           X =  u.label({ text = "Track: " .. v }):setStyle({ font = FontSmall })
+           BackupListTabContents:colspanAt(k,1,2)
+              :addAt (k,1,X)
+        end
 
         u:add(RecordTabButton)
         u:add(BackupListTabButton)
@@ -139,10 +160,26 @@ function love.draw()
 	u:draw()
 	love.graphics.setCanvas()
 
-	love.graphics.draw(canvas, 0, 50, 0,
+        --
+        x, y, w, h = love.window.getSafeArea()
+        print ("X :" .. x )
+        print ("Y :" .. y )
+        print ("W :" .. w )
+        print ("H :" .. h )
+
+
+
+        love.graphics.draw(canvas, x, y, 0,
                            love.graphics.getWidth() / canvas:getWidth(),
-		love.graphics.getHeight() / canvas:getHeight()
-	)
+		           love.graphics.getHeight() / canvas:getHeight()
+        )
+
+        local debug = 0
+
+        if debug then
+           love.graphics.print(x,100,100,0,1,1,0,0,0,0)
+        end
+
 end
 
 
@@ -175,6 +212,7 @@ function update_backup_list()
 
    end
 
+   print (inspect (filtered_list))
    backup_list = filtered_list
 
 end
