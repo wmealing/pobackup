@@ -66,11 +66,12 @@ function love.load()
         RecordingButton = u.button({ text = ' ⬤ Record' })
         RecordingButton:setStyle({padding = 15})
 
-        RecordingImage = u.image({ image = love.graphics.newImage('img/microphone-icon.png'), keep_aspect_ratio = true })
+        RecordingImage = u.image({ image = love.graphics.newImage('img/microphone-icon.png'),
+                                   keep_aspect_ratio = true })
 
         RecordingLabel = u.label({ text = 'Press Record button' })
         RecordingLabel2 = u.label({ text = 'below to start recording' })
-        
+
 	RecordTabContents
            :colspanAt(1, 1, 2)
            :colspanAt(2, 1, 2)
