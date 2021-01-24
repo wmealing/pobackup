@@ -30,6 +30,8 @@ local bitDepths = {16, 8}
 function CreateRandomString(length)
     local uuid = ""
     local chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+
     for i = 1, length do
         local l = math.random(1, #chars)
         uuid = uuid .. string.sub(chars, l, l)
@@ -38,6 +40,8 @@ function CreateRandomString(length)
 end
 
 function love.load()
+
+   math.randomseed( os.time() )
 
    width, height, flags = love.window.getMode( )
    wave = require "wave"
@@ -222,15 +226,9 @@ function love.update(dt)
       end
 
     
-
    end
-   
+
 end
-
-
-
-
-
 
 function love.draw()
 	love.graphics.setCanvas(canvas)
@@ -308,8 +306,8 @@ function find_best_recording_settings ()
 end
 
 function start_recording ()
-   print ("started recording")
-   recDev:start(16384, sampleFmt, bitDepth, stereo)
+   print ("started recording" , recordingFreq, recordingBitDepth, recordingChan)
+   recDev:start(16384, recordingFreq, recordingBitDepth, recordingChan)
 end
 
 function stop_recording ()
@@ -320,24 +318,28 @@ end
 
 function save_recording ()
    print ("Saving file")
-
-     -- this is where we were recording but not now.
+   
+   local soundDataIdx = 0
+   
+   -- this is where we were recording but not now.
    local soundData = love.sound.newSoundData(soundDataLen,
                                              recordingFreq,
                                              recordingBitDepth,
                                              recordingChan)
-   local soundDataIdx = 0
+
 
    for _, v in ipairs(soundDataTable) do
       for i = 0, v:getSampleCount() - 1 do
---         for j = 1, recordingChan do
-         local j = 1
-         soundData:setSample(soundDataIdx, j, v:getSample(i, j))
---         end
-         soundDataIdx = soundDataIdx + 1
+            for j = 1, recordingChan do
+               local m = v:getSample (i,j)
+               soundData:setSample(soundDataIdx, j, m)
+            end
+            soundDataIdx = soundDataIdx + 1
       end
       v:release()
    end
+
+   soundDataTable = {}
 
    randomName = "backups/".. CreateRandomString(8) .. ".wav"
 
