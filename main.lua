@@ -1,14 +1,19 @@
 local urutora = require('urutora')
+local inspect = require('inspect')
 local u
 
 local bgColor = urutora.utils.toRGB('#343a40')
 local canvas
+
+local backup_dir = ""
+local backup_list = {}
 
 function love.load()
 
    u = urutora:new()
 
    make_save_dir()
+   update_backup_list()
 
    function love.mousepressed(x, y, button) u:pressed(x, y) end
    function love.mousemoved(x, y, dx, dy) u:moved(x, y, dx, dy) end
@@ -38,7 +43,7 @@ function love.load()
         widget_padding = 5
 
         local RecordTabButton = urutora.button({
-              text = '[Record]',
+              text = '[ Recording ]',
               x = widget_padding,
               y = 2,
               w = (love.graphics.getWidth() / 2.0 ) - widget_padding,
@@ -63,7 +68,7 @@ function love.load()
                            h = h - 55,
                            tag = 'RecordTabContents' })
 
-        RecordingButton = u.button({ text = ' ⬤ Record' })
+        RecordingButton = u.button({ text = ' [ ] Record' })
         RecordingButton:setStyle({padding = 15})
 
         RecordingImage = u.image({ image = love.graphics.newImage('img/microphone-icon.png'),
@@ -86,14 +91,14 @@ function love.load()
 
         BackupListTabContents = u.panel( { rows = 6,
                                            cols = 4,
+                                           x = widget_padding,
                                            y = 50,
-                                           w = w - (widget_padding / 2.0),
-                                           h = h - 20,
+                                           w = w - (widget_padding * 2),
+                                           h = h - 55,
                                            tag = 'BackupListTabContents'
         })
 
         BackupListTabContents.outline = true
-
 
         BackupListTabContents
            :rowspanAt(1,1,2)
@@ -108,16 +113,20 @@ function love.load()
 
         RecordTabButton:action(function(e)
               print("Showing Recording interface")
+              RecordTabButton.text = "[ Recording ]"
+              BackupListTabButton.text = "Backups"
               u:deactivateByTag('BackupListTabContents')
               u:activateByTag('RecordTabContents')
         end)
 
         BackupListTabButton:action(function(e) 
               print("Listing Backups")
+              RecordTabButton.text = "Recording"
+              BackupListTabButton.text = "[ Backups ]"
+              update_backup_list()
               u:deactivateByTag('RecordTabContents')
               u:activateByTag('BackupListTabContents')
         end)
-
 end
 
 function love.update(dt)
@@ -142,10 +151,31 @@ function make_save_dir()
    -- maybe ?
    love.filesystem.setIdentity("po-backup")
    -- on android this will be the path on 
-   dir = love.filesystem.getSaveDirectory( )
-   print(dir)
-   -- this needs to be tested
+   base_dir = love.filesystem.getSaveDirectory()
+
+   backup_dir = base_dir .. "/backups"
+
+   -- this needs to be tested better.
    success = love.filesystem.createDirectory( "backups" )
 
+end
+
+
+function update_backup_list()
+   print("Updating backup list")
+
+   local filtered_list = {}
+
+   local files = love.filesystem.getDirectoryItems ("backups")
+
+   for i, v in ipairs(files) do
+      if string.find(v, "wav") then
+         table.insert (filtered_list,v)
+      end
+
+   end
+
+   backup_list = filtered_list
 
 end
+

@@ -1,8 +1,8 @@
 function love.conf(t)
-  t.identity = nil
+  t.identity = "po-backup"
   t.appendidentity = false
   t.version = "11.3"
-  t.console = false
+  t.console = true
   t.accelerometerjoystick = false
   t.externalstorage = true 
   t.gammacorrect = false
