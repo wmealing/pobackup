@@ -10,7 +10,7 @@ function love.conf(t)
   t.audio.mic = true
   t.audio.mixwithsystem = true
 
-  t.window.title = "urutora demo"
+  t.window.title = "PO-BACKUP"
   t.window.icon = nil
 
   -- 2280 x 1080 
@@ -40,7 +40,7 @@ function love.conf(t)
   t.modules.image = true
   t.modules.joystick = false
   t.modules.keyboard = true
-  t.modules.math = true
+  t.modules.math = false
   t.modules.mouse = true
 --  t.modules.physics = false
   t.modules.sound = true 
@@ -51,3 +51,4 @@ function love.conf(t)
 --  t.modules.video = true
   t.modules.window = true
 end
+

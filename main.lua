@@ -1,5 +1,6 @@
 local urutora = require('urutora')
 local inspect = require('inspect')
+local Timer = require('timer')
 
 local u
 local wave
@@ -19,13 +20,17 @@ local devicesString
 local recordingFreq, recordingChan, recordingBitDepth
 local soundDataTable = {}
 local soundDataLen = 0
-local startedRecording = false
+local startedRecording = faflse
 local saveRecording = false
 
 -- Possible combination testing
 local sampleFmts = {48000, 44100, 32000, 22050, 16000, 8000}
 local chanStereo = {2, 1}
 local bitDepths = {16, 8}
+
+-- sintructions
+local overlay_image = nil
+
 
 function CreateRandomString(length)
     local uuid = ""
@@ -49,7 +54,6 @@ function love.load()
    u = urutora:new()
 
    make_save_dir()
-   backup_list = update_backup_list()
 
    function love.mousepressed(x, y, button) u:pressed(x, y) end
    function love.mousemoved(x, y, dx, dy) u:moved(x, y, dx, dy) end
@@ -80,6 +84,9 @@ function love.load()
 
    canvas = love.graphics.newCanvas(w, h)
    canvas:setFilter('nearest', 'nearest')
+
+   local pixelscale = love.window.getDPIScale()
+   print ("PX SCALE:"..  pixelscale)
 
    local DefaultFont = love.graphics.newFont('fonts/block.ttf',20)
    local FontSmall = love.graphics.newFont('fonts/block.ttf',12)
@@ -130,13 +137,13 @@ function love.load()
    RecordingButton:setStyle({padding = 15})
 
    RecordingButton:action(function(e)
-
          -- dumb way of managing button state, this is still broken
          if (RecordingButton.state == ButtonState.Stopped) then
             RecordingButton.text = "Stop"
             RecordingButton.state = ButtonState.Recording
-            start_recording ()
-         elseif (RecordingButton.state == ButtonState.Recording) then
+            set_overlay()
+            Timer.after(3, function() start_recording () end)
+            elseif (RecordingButton.state == ButtonState.Recording) then
             stop_recording ()
             RecordingButton.text = "Record"
             RecordingButton.state = ButtonState.Stopped
@@ -167,23 +174,8 @@ function love.load()
 
    BackupListTabContents.outline = true
 
-   BackupListTabContents.outline = true
+   update_backup_panel(BackupListTabContents)
 
-   for k,wavfile in ipairs(backup_list) do
-      local SongButton = u.button({ text = "Track " .. wavfile ,
-                                    h = 20,
-                                    song = wavfile
-      })
-
-      SongButton:action (function (e)
-            backup_path = "backups/" .. wavfile
-            print ("loading from backup path" .. backup_path)
-            music = love.audio.newSource(backup_path, "stream")
-            music:play()
-      end)
-
-      BackupListTabContents:addAt(k,1,SongButton)
-   end
 
         u:add(RecordTabButton)
         u:add(BackupListTabButton)
@@ -205,7 +197,7 @@ function love.load()
               print("Listing Backups")
               RecordTabButton.text = "Recording"
               BackupListTabButton.text = "[ Backups ]"
-              backup_list = update_backup_list()
+              update_backup_panel(BackupListTabContents)
               u:deactivateByTag('RecordTabContents')
               u:activateByTag('BackupListTabContents')
         end)
@@ -213,7 +205,8 @@ end
 
 function love.update(dt)
    u:update(dt)
-
+   Timer.update(dt)
+   
    if recDev:isRecording () then
 
       local data = recDev:getData()
@@ -224,7 +217,6 @@ function love.update(dt)
          print("Current sound data len: ",  #soundDataTable)
       end
 
-    
    end
 
 end
@@ -242,6 +234,14 @@ function love.draw()
 		           love.graphics.getHeight() / canvas:getHeight()
                            )
 
+        if overlay_image then
+
+           image_height = overlay_image:getHeight()
+           image_width = overlay_image:getWidth()
+
+           love.graphics.draw(overlay_image,
+                              (w  / 2.0)  - (image_width / 2.0),                                               (h  / 2.0)  - (image_height / 2.0))
+        end
 end
 
 
@@ -259,6 +259,33 @@ function make_save_dir()
 
 end
 
+function update_backup_panel (Panel)
+
+   backup_list = update_backup_list()
+   -- first disable everything in the panel.
+   Panel:forEach (function (e)
+         e:deactivate()
+   end)
+
+   for k,wavfile in ipairs(backup_list) do
+
+      local SongButton = u.button({ text = "Track " .. wavfile ,
+                                     h = 20,
+                                     song = wavfile
+                                     })
+
+      SongButton:action (function (e)
+            backup_path = "backups/" .. wavfile
+            print ("loading from backup path" .. backup_path)
+            music = love.audio.newSource(backup_path, "stream")
+            music:play()
+      end)
+
+      Panel:addAt(k,1,SongButton)
+
+   end
+
+end
 
 function update_backup_list()
    print("Updating backup list")
@@ -273,13 +300,15 @@ function update_backup_list()
       end
 
    end
-
+   print (inspect(filtered_list))
    print("Update completed")
    return filtered_list
 end
 
 function find_best_recording_settings ()
    print ("Finding best recording settings...")
+
+   backup_list = update_backup_list()
 
    local success = false
 
@@ -303,7 +332,15 @@ function find_best_recording_settings ()
    end
 end
 
+function set_overlay ()
+   print ("Setting overlay")
+   overlay_image = love.graphics.newImage('img/po-record-plug.png')
+   print (overlay_image)
+end
+
+
 function start_recording ()
+
    print ("started recording" , recordingFreq, recordingBitDepth, recordingChan)
    recDev:start(16384, recordingFreq, recordingBitDepth, recordingChan)
 end
@@ -324,7 +361,6 @@ function save_recording ()
                                              recordingFreq,
                                              recordingBitDepth,
                                              recordingChan)
-
 
    for _, v in ipairs(soundDataTable) do
       for i = 0, v:getSampleCount() - 1 do
@@ -360,3 +396,4 @@ function setup_recording_device ()
    --this may not be right, maybe set this as a preference
    recDev = devices[1]
 end
+
