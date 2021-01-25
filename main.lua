@@ -1,6 +1,6 @@
-local urutora = require('urutora')
-local inspect = require('inspect')
-local Timer = require('timer')
+local urutora = require('lib.urutora')
+local inspect = require('lib.inspect')
+local Timer = require('lib.timer')
 
 local u
 local wave
@@ -77,7 +77,7 @@ function love.load()
 
    local w, h = love.window.getMode()
 
-   -- FIXME: i dont know how to caculate this but without it
+   -- Fixme: i dont know how to caculate this but without it
    -- the notification bar covers the buttons.
    local tab_button_height = h / 8.0
    local widget_padding = 5
