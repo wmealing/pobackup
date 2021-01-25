@@ -1,9 +1,10 @@
 local urutora = require('lib.urutora')
 local inspect = require('lib.inspect')
 local Timer = require('lib.timer')
+local wave = require "lib.wave"
 
 local u
-local wave
+
 
 local bgColor = urutora.utils.toRGB('#343a40')
 local canvas
@@ -49,7 +50,7 @@ function love.load()
    math.randomseed( os.time() )
 
    width, height, flags = love.window.getMode( )
-   wave = require "wave"
+
 
    u = urutora:new()
 
